@@ -1,5 +1,6 @@
 local messager = require 'share.messager'
 local lang = require 'share.lang'
+local war3
 local loader
 local key_cache = {}
 local function get_key(w2l, type, id)
@@ -76,6 +77,13 @@ local function create_keydata(w2l, type, keydata)
                 keydata[filename] = {}
             end
             table.insert(keydata[filename], key)
+            if war3.reforge then
+                if meta.category == 'art'
+                and meta.slk == 'Profile' then
+                    table.insert(keydata[filename], key .. ':hd')
+                    table.insert(keydata[filename], key .. ':sd')
+                end
+            end
         end
     end
 end
@@ -92,7 +100,8 @@ local function stringify(f, name, t)
     f[#f+1] = '}'
 end
 
-return function(w2l, loader_)
+return function(w2l, war3_, loader_)
+    war3 = war3_
     loader = loader_
     messager.text(lang.raw.CREATING .. 'keydata')
     local keydata = {}

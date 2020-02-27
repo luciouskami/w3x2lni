@@ -22,14 +22,14 @@ local keys
 local remove_unuse_object
 local object
 
-local function to_type(tp, value)
+local function to_type(tp, value, reforge)
     if tp == 0 then
         if not value then
             return nil
         end
         local value = tostring(math_floor(value))
         if value == '0' then
-            return nil
+            return reforge and 0 or nil
         end
         return value
     elseif tp == 1 or tp == 2 then
@@ -43,8 +43,11 @@ local function to_type(tp, value)
             value = value:gsub('0+$', '')
         end
         value = value:gsub('%.$', '')
-        if value == '' or value == '0' then
+        if value == '' then
             return nil
+        end
+        if value == '0' then
+            return reforge and 0 or nil
         end
         return value
     elseif tp == 3 then
@@ -91,7 +94,7 @@ local function add_data(obj, meta, value, keyval)
         if meta.index == 1 then
             local value = get_index_data(meta.type, {obj[meta.key..'_1'], obj[meta.key..'_2']}, 2)
             if not value then
-                if meta.cantempty then
+                if meta.cantempty and not meta.reforge then
                     value = ','
                 else
                     return
@@ -157,10 +160,10 @@ local function add_data(obj, meta, value, keyval)
         end
         value = get_index_data(meta.type, value, #value)
     else
-        value = to_type(meta.type, value)
+        value = to_type(meta.type, value, meta.reforge)
     end
     if not value or value == '' then
-        if meta.cantempty then
+        if meta.cantempty and not meta.reforge then
             value = ','
         else
             return
@@ -201,7 +204,8 @@ end
 local function create_keyval(obj, txt_obj)
     local keyval = {}
     for _, key in ipairs(keys) do
-        if key ~= 'editorsuffix' and key ~= 'editorname' then
+        if key ~= 'editorsuffix'
+        and key ~= 'editorname' then
             add_data(obj, metadata[key], obj[key], keyval)
         end
     end
@@ -261,17 +265,48 @@ local function check_string(s)
     return type(s) == 'string' and s:find(',', nil, false) and s:find('"', nil, false)
 end
 
+local function is_same(a, b)
+    local tp1 = type(a)
+    local tp2 = type(b)
+    if tp1 ~= tp2 then
+        return false
+    end
+    if tp1 == 'table' then
+        local used = {}
+        for k, v in pairs(a) do
+            if not is_same(v, b[k]) then
+                return false
+            end
+            used[k] = true
+        end
+        for k in pairs(b) do
+            if not used[k] then
+                return false
+            end
+        end
+        return true
+    else
+        return a == b
+    end
+end
+
 local function prebuild_data(obj, key, r)
     if not obj[key] then
         return
     end
     local name = obj._id
+    local meta = metadata[key]
+    if meta.reforge then
+        if is_same(obj[key], obj[meta.reforge]) then
+            return
+        end
+    end
     if type(obj[key]) == 'table' then
         object[name][key] = {}
         local t = {}
         for k, v in pairs(obj[key]) do
             if check_string(v) then
-                report_failed(obj, metadata[key].field, lang.report.TEXT_CANT_ESCAPE_IN_TXT, v)
+                report_failed(obj, meta.field, lang.report.TEXT_CANT_ESCAPE_IN_TXT, v)
                 object[name][key][k] = v
             else
                 t[k] = v
@@ -283,7 +318,7 @@ local function prebuild_data(obj, key, r)
         r[key] = t
     else
         if check_string(obj[key]) then
-            report_failed(obj, metadata[key].field, lang.report.TEXT_CANT_ESCAPE_IN_TXT, obj[key])
+            report_failed(obj, meta.field, lang.report.TEXT_CANT_ESCAPE_IN_TXT, obj[key])
             object[name][key] = obj[key]
         else
             r[key] = obj[key]
@@ -370,7 +405,7 @@ end
 
 local function update_constant(type)
     metadata = w2l:metadata()[type]
-    keys = w2l:keydata()[type]
+    keys = w2l:keydata()[type] or {}
 end
 
 return function(w2l_, slk, report_, obj)
@@ -382,6 +417,7 @@ return function(w2l_, slk, report_, obj)
     local type_list = {'ability', 'buff', 'unit', 'item', 'upgrade'}
     if w2l.setting.slk_doodad then
         type_list[#type_list+1] = 'doodad'
+        type_list[#type_list+1] = 'destructable'
     end
     for _, type in ipairs(type_list) do
         list[type] = {}

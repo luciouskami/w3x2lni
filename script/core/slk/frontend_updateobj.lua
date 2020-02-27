@@ -4,6 +4,7 @@ local has_level
 local metadata
 local reports
 local reports2
+local slk_type
 
 local pairs = pairs
 local string_sub = string.sub
@@ -79,11 +80,19 @@ local function update_obj(name, type, obj, data)
             new_obj._max_level = 1
         end
     end
+    if w2l:isreforge() then
+        for k, meta in pairs(metadata[slk_type]) do
+            if not new_obj[k] and meta.reforge then
+                new_obj[k] = new_obj[meta.reforge]
+            end
+        end
+    end
     return new_obj
 end
 
 return function (w2l_, type, chunk, data)
     w2l = w2l_
+    slk_type = type
     has_level = w2l.info.key.max_level[type]
     metadata = w2l:metadata()
     reports = {}

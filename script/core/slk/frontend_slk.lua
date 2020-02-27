@@ -146,7 +146,23 @@ local function txt_to_type(tp, value)
     end
 end
 
+local function copy(t)
+    if type(t) == 'table' then
+        local nt = {}
+        for k, v in pairs(t) do
+            nt[k] = v
+        end
+        return nt
+    else
+        return t
+    end
+end
+
 local function txt_read_data(name, obj, key, meta, txt)
+    if meta.reforge and (not txt or not txt[meta.key]) then
+        obj[key] = copy(obj[meta.reforge])
+        return
+    end
     if meta.index then
         local value = txt and txt[meta.key] or meta.default
         obj[key] = txt_to_type(meta.type, value and value[meta.index])
@@ -285,6 +301,11 @@ return function(w2l_, loader)
     w2l.progress:start(0.3)
     for _, filename in pairs(w2l.info.txt) do
         w2l:parse_txt(loader(filename) or '', filename, txt)
+    end
+    if w2l:isreforge() then
+        for _, filename in pairs(w2l.info.reforge) do
+            w2l:parse_txt(loader(filename) or '', filename, txt)
+        end
     end
     for _, filename in pairs(w2l.info.misc) do
         w2l:parse_txt(loader(filename), filename, misc)

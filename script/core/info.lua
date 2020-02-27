@@ -57,7 +57,6 @@ return {
         'units\\nightelfunitfunc.txt',
         'units\\orcunitfunc.txt',
         'units\\undeadunitfunc.txt',
-        'units\\unitskin.txt',
 
         'units\\campaignabilitystrings.txt',
         'units\\commonabilitystrings.txt',
@@ -92,7 +91,26 @@ return {
         'units\\itemstrings.txt',
         'units\\itemfunc.txt',
 
+        'units\\destructableskin.txt',
+    },
+    reforge = {
+        'units\\unitskin.txt',
+        'units\\unitweaponsskin.txt',
+        'units\\abilityskin.txt',
+        'units\\upgradeskin.txt',
+        'units\\itemskin.txt',
+        'units\\upgradeskin.txt',
         'doodads\\doodadskins.txt',
+    },
+    txt_out = {
+        unit    = 'units\\campaignunitstrings.txt',
+        ability = 'units\\campaignabilitystrings.txt',
+        buff    = 'units\\commonabilitystrings.txt',
+        upgrade = 'units\\campaignupgradestrings.txt',
+        item    = 'units\\itemstrings.txt',
+        txt     = 'units\\itemabilitystrings.txt',
+        doodad  = 'doodads\\doodadskins.txt',
+        destructable = 'units\\orcunitstrings.txt',
     },
     misc = {
         'ui\\miscdata.txt',
