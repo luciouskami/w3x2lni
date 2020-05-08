@@ -130,6 +130,8 @@ Function [%s] needs nothing, but passed [%d] args.
 Attemp to index variable [%s].
 [ERROR_NO_INDEX]
 Missing index for array [%s].
+[ERROR_INDEX_TYPE]
+Index of variable [%s] should be integer, but used [%s].
 [ERROR_SET_CONSTANT]
 Attemp to assign constant [%s].
 [ERROR_SET_IN_CONSTANT]
@@ -190,3 +192,5 @@ Global [%s] has magic --> defined local used same name in [%s] line [%s].
 Call [%s] in globals will make WC3 crash.
 [WARNING_NULL_NATIVE_IN_GLOBAL]
 Call [%s] in globals will return null.
+[WARNING_INTEGER_OVERFLOW]
+Integer [%s] overflow [-2147483648, 2147483647].

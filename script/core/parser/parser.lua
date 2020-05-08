@@ -234,9 +234,20 @@ local static = {
     },
 }
 
-local function Integer(neg, int)
+local function Integer(neg, int, str, base)
     if neg ~= '' then
         int = - int
+    end
+    if not int or int > 0x7fffffff or int < -0x80000000 then
+        -- 认为只有10进制数字才会犯整数边界的错误
+        if base == 10 then
+            if neg == '' then
+                int = 0x7fffffff
+            else
+                int = -0x80000000
+            end
+            parserWarning(lang.parser.WARNING_INTEGER_OVERFLOW:format(str, int))
+        end
     end
     return Integers[int]
 end
@@ -454,7 +465,7 @@ local function checkCall(func, call)
     end
 end
 
-local function checkSet(var, source, array, exp)
+local function checkSet(var, source, array, index, exp)
     -- 如果是马甲变量，就不再检查更多错误
     if source == 'dummy' then
         return
@@ -468,6 +479,11 @@ local function checkSet(var, source, array, exp)
     else
         if var.array then
             parserError(lang.parser.ERROR_NO_INDEX:format(name) .. exploitText)
+        end
+    end
+    if index then
+        if not isExtends(index.vtype, 'integer') then
+            parserError(lang.parser.ERROR_INDEX_TYPE:format(name, index.vtype) .. exploitText)
         end
     end
     if var.constant and state.currentFunction then
@@ -635,17 +651,17 @@ end
 
 function parser.Integer8(neg, str)
     local int = tonumber(str, 8)
-    return Integer(neg, int)
+    return Integer(neg, int, str, 8)
 end
 
 function parser.Integer10(neg, str)
     local int = tointeger(str)
-    return Integer(neg, int)
+    return Integer(neg, int, str, 10)
 end
 
 function parser.Integer16(neg, str)
     local int = tointeger('0x'..str)
-    return Integer(neg, int)
+    return Integer(neg, int, str, 16)
 end
 
 function parser.Integer256(neg, str)
@@ -660,7 +676,7 @@ function parser.Integer256(neg, str)
     else
         int = 0
     end
-    return Integer(neg, int)
+    return Integer(neg, int, str, 256)
 end
 
 function parser.Code(name, pl)
@@ -846,7 +862,7 @@ function parser.Global(constant, type, array, name, exp)
         _set = true,
     }
     if exp then
-        checkSet(global, 'global', array, exp)
+        checkSet(global, 'global', array, nil, exp)
     end
     globals[name] = global
     ast.globals[#ast.globals+1] = global
@@ -949,7 +965,7 @@ function parser.Set(name, ...)
     local var, source = getVar(name)
     if select('#', ...) == 1 then
         local exp = ...
-        checkSet(var, source, false, exp)
+        checkSet(var, source, false, nil, exp)
         var._set = true
         return {
             type = 'set',
@@ -958,7 +974,7 @@ function parser.Set(name, ...)
         }
     else
         local index, exp = ...
-        checkSet(var, source, true, exp)
+        checkSet(var, source, true, index, exp)
         return {
             type = 'seti',
             name = name,
@@ -972,7 +988,7 @@ function parser.Return()
     local func = state.currentFunction
     if func then
         local t1 = func.vtype
-        if t1 then
+        if t1 ~= 'nothing' then
             parserError(lang.parser.ERROR_MISS_RETURN:format(func.name, t1))
         end
     end
@@ -991,7 +1007,7 @@ function parser.ReturnExp(exp)
         end
         local t1 = func.vtype
         local t2 = exp.vtype
-        if t1 then
+        if t1 ~= 'nothing' then
             if t1 == 'real' and t2 == 'integer' then
                 parserWarning(lang.parser.ERROR_RETURN_INTEGER_AS_REAL:format(func.name, t1, t2) .. exploitText)
             elseif not isExtends(t2, t1) then
@@ -1219,7 +1235,7 @@ function parser.FunctionEnd(m)
         args[k] = nil
     end
     finishRB()
-    if func.returns and state.returnTimes[1] > 0 then
+    if func.returns ~= 'nothing' and state.returnTimes[1] > 0 then
         if state.returnAny then
             parserError(lang.parser.ERROR_RETURN_IN_ALL:format(func.name, func.returns))
         else
@@ -1278,6 +1294,7 @@ return function (jass_, file_, option_)
         state = {}
         option.state = state
         state.types = {
+            nothing = {type = 'type'},
             null    = {type = 'type'},
             handle  = {type = 'type'},
             code    = {type = 'type'},
