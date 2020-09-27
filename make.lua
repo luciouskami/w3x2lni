@@ -1,5 +1,7 @@
 local lm = require 'luamake'
 
+lm.arch = 'x86'
+
 lm:import '3rd/bee.lua/make.lua'
 
 lm.rootdir = 'c++/'
@@ -69,10 +71,14 @@ lm:shared_library 'stormlib' {
         '!stormlib/src/adpcm/adpcm_old.cpp',
         '!stormlib/src/zlib/compress.c',
         '!stormlib/src/pklib/crc32.c',
+        '!stormlib/src/wdk/*',
     },
     defines = {
         '_UNICODE',
         'UNICODE'
+    },
+    links = {
+        'user32',
     },
     ldflags = '/DEF:3rd/stormlib/stormlib_dll/stormlib.def'
 }
@@ -98,15 +104,15 @@ lm:shared_library 'lni' {
 
 lm:build 'ffi_dynasm' {
     '$luamake', 'lua', 'make/ffi_dynasm.lua',
-    output = "3rd/bee.lua/3rd/luaffi/src/call_x86.h",
+    output = "3rd/ffi/src/call_x86.h",
     deps = {
         'lua',
     }
 }
 
 lm:phony {
-    input = "3rd/bee.lua/3rd/luaffi/src/call_x86.h",
-    output = "3rd/bee.lua/3rd/luaffi/src/call.c",
+    input = "3rd/ffi/src/call_x86.h",
+    output = "3rd/ffi/src/call.c",
 }
 
 lm:shared_library 'ffi' {
@@ -115,8 +121,8 @@ lm:shared_library 'ffi' {
         'ffi_dynasm'
     },
     sources = {
-        'bee.lua/3rd/luaffi/src/*.c',
-        '!bee.lua/3rd/luaffi/src/test.c',
+        'ffi/src/*.c',
+        '!ffi/src/test.c',
     },
     ldflags = '/EXPORT:luaopen_ffi'
 }
